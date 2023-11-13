@@ -7,7 +7,7 @@
 // neuron has to the next layer, and the activation function for the layer outputs.
 // The weights vector is initialized to the size of the number of neurons in the current layer
 // times the number of neurons in the next layer. The biases vector is initialized to the number
-// of connections per neuron to the next layer. The weights and biases are initialized to random
+// of connections per neuron to the next layer. The weights are initialized to random
 // values between -1 and 1.
 Layer::Layer(unsigned int num_neurons, unsigned int num_connections_per_neuron)
     : _weights(num_neurons * num_connections_per_neuron), _biases(num_connections_per_neuron) {
@@ -26,7 +26,7 @@ Layer::Layer(unsigned int num_neurons, unsigned int num_connections_per_neuron)
 
     // Initialize the biases to random values between -1 and 1.
     for (unsigned int i = 0; i < _biases.size(); i++) {
-        _biases[i] = (float)std::rand() / RAND_MAX * 2 - 1;
+        _biases[i] = 0.0f;
     }
 }
 
@@ -35,19 +35,15 @@ Layer::Layer(unsigned int num_neurons, unsigned int num_connections_per_neuron)
 // layer input size. Returns the output of the layer.
 std::vector<float> Layer::_forward(const std::vector<float>& input) {
     // The output of the layer.
-    std::vector<float> output;
-    output.reserve(_num_connections_per_neuron);
+    std::vector<float> output(_num_connections_per_neuron);
     
-    // Calculate each output of the layer.
-    // #pragma omp parallel for allows for parallelization of the loop using OpenMP, which is a library for
-    // parallel programming in C++ that is enabled through the -fopenmp compiler flag.
-    #pragma omp parallel for
+    // Calculate each output value of the layer.
     for (std::size_t connection_idx = 0; connection_idx < _num_connections_per_neuron; connection_idx++) {
         // The output of the current neuron.
         float current_output_value = 0.0f;
 
         for (std::size_t neuron_idx = 0; neuron_idx < _num_neurons; neuron_idx++) {
-            // Add current layer_input * the weight for the current connection.
+            // Add current input value * the weight for the current connection.
             current_output_value += input[connection_idx] * _weights[connection_idx * _num_neurons + neuron_idx];
         }
 
@@ -55,7 +51,7 @@ std::vector<float> Layer::_forward(const std::vector<float>& input) {
         current_output_value += _biases[connection_idx];
 
         // Add the output of the current neuron to the output of the current layer.
-        output.push_back(current_output_value);
+        output[connection_idx] = current_output_value;
     }
 
     // Store the output of the layer for the backward pass.
@@ -65,28 +61,24 @@ std::vector<float> Layer::_forward(const std::vector<float>& input) {
 
 // Backward pass through the network.
 // The prev_gradient vector is the gradient calculated by the loss function.
-// The gradient is calculated by multiplying the sum of the gradients in the previous
-// layer by multiplied by the weights they are attached to for each neuron.
-// The bias_gradient vector is the gradient of the biases of the layer which is the sum
-// of the gradients in the previous layer for each value in the bias_gradient.
-// This applies the chain rule of calculus.
+// The gradient is calculated for each layer in the network using the gradient of the
+// previous layer. This applies the chain rule of calculus.
 std::vector<float> Layer::backward(const std::vector<float>& prev_gradient) {
     std::vector<float> output_gradient(_num_neurons);
     std::vector<float> bias_gradient(_num_connections_per_neuron);
 
     // Calculate the gradient of each neuron in the layer.
     // The gradient of each neuron is the sum of the gradient of each connection to the next layer
-    // multiplied by the weight of the connection.
-    // #pragma omp parallel for allows for parallelization of the loop using OpenMP, which is a library for
-    // parallel programming in C++ that is enabled through the -fopenmp compiler flag.
-    #pragma omp parallel for
-    for (std::size_t i = 0; i < _num_neurons; i++) {
+    // multiplied by the weight of the connection
+    for (std::size_t neuron_idx = 0; neuron_idx < _num_neurons; neuron_idx++) {
         float sum = 0.0f;
-        for (std::size_t j = 0; j < _num_connections_per_neuron; j++) {
-            sum += prev_gradient[j] * _weights[i * _num_connections_per_neuron + j];
-            bias_gradient[j] += prev_gradient[j];
+        for (std::size_t connection_idx = 0; connection_idx < _num_connections_per_neuron; connection_idx++) {
+            sum += prev_gradient[connection_idx] * _weights[neuron_idx * _num_connections_per_neuron + connection_idx];
+
+            // Ensures values in bias_gradient are updated atomically.
+            bias_gradient[connection_idx] += prev_gradient[connection_idx];
         }
-        output_gradient[i] = sum * _derivative(_current_output[i]);
+        output_gradient[neuron_idx] = sum * _derivative(_current_output[neuron_idx]);
     }
 
     // Store the gradients of the layer for the optimizer.
@@ -95,14 +87,23 @@ std::vector<float> Layer::backward(const std::vector<float>& prev_gradient) {
     return output_gradient;
 }
 
-// The derivative of the activation function is used to calculate the gradient of the layer
-// during the backward pass.
+// The output_layer_backward is called on the last layer of the network. It applies
+// a derivative with respect to the loss function.
+std::vector<float> Layer::output_layer_backward(const std::vector<float>& expected_output) {
+
+}
 
 // Calling the class as a function executes a forward pass through the layer.
 
 // Linear activation function has a derivative of 1 since it does not use an activation function on the output.
 inline float Linear::_derivative(float value) const {
     return 1.0f;
+}
+
+//
+// Linear assumes that mean squared error is used as the loss function.
+inline float Linear::_loss_derivative(float value) const {
+
 }
 
 // Linear activation function does not use an activation function on the output.
@@ -116,6 +117,11 @@ std::vector<float> Linear::operator()(const std::vector<float>& input) {
 // Sigmoid activation function has a derivative of sigmoid(x) * (1 - sigmoid(x)).
 inline float Sigmoid::_derivative(float value) const {
     return value * (1 - value);
+}
+
+//
+inline float Sigmoid::_loss_derivative(float value) const {
+
 }
 
 // Sigmoid activation function squashes the output of each neuron to a value between 0 and 1.
@@ -136,6 +142,11 @@ inline float ReLU::_derivative(float value) const {
     return value > 0 ? 1 : 0;
 }
 
+// 
+inline float ReLU::_loss_derivative(float value) const {
+
+}
+
 // ReLU activation function squashes the output of each neuron to a value between 0 and infinity.
 std::vector<float> ReLU::operator()(const std::vector<float>& input) {
     // Pass the input through the layer.
@@ -149,27 +160,16 @@ std::vector<float> ReLU::operator()(const std::vector<float>& input) {
     return output;
 }
 
-// Tanh activation function has a derivative of 1 - tanh(x)^2.
-inline float Tanh::_derivative(float value) const {
-    return 1 - std::pow(std::tanh(value), 2);
-}
-
-// Tanh activation function squashes the output of each neuron to a value between -1 and 1.
-std::vector<float> Tanh::operator()(const std::vector<float>& input) {
-    // Pass the input through the layer.
-    auto output = _forward(input);
-
-    // Apply the tanh function to the output of the layer.
-    for (std::size_t i = 0; i < output.size(); i++) {
-        output[i] = std::tanh(output[i]);
-    }
-
-    return output;
-}
-
-// Softmax activation function has a derivative of softmax(x) * (1 - softmax(x)).
+// The softmax derivative is set to 1. This is not actually the derivative of softmax,
+// but in this case the gradient from the activation function is all that is needed.
 inline float Softmax::_derivative(float value) const {
-    return value * (1 - value);
+    return 1.0f;
+}
+
+//
+// Softmax assumes that cross entropy is the loss function.
+inline float Softmax::_loss_derivative(float value) const {
+
 }
 
 // Softmax activation function squashes the output of each neuron to a value between 0 and 1.

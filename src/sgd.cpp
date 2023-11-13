@@ -4,9 +4,7 @@
 
 #include "sgd.hpp"
 
-#include <iostream>
-
- // Update the weights and biases of a layer.
+// Update the weights and biases of a layer.
 inline void SGD::_step_layer(Layer& layer) {
     std::vector<float>& weights = layer.get_weights();
     std::vector<float>& biases = layer.get_biases();
@@ -28,14 +26,12 @@ inline void SGD::_step_layer(Layer& layer) {
     // A higher momentum will result in faster training, but the model may not converge.
     // Weight decay is used to prevent overfitting by penalizing large weights.
     // A higher weight decay will result in a simpler model, but the model may not converge.
-    // #pragma omp parallel for allows for parallelization of the loop using OpenMP, which is a library for
-    // parallel programming in C++ that is enabled through the -fopenmp compiler flag.
-    #pragma omp parallel for
     for (std::size_t i = 0; i < num_connections_per_neuron; i++) {
         for (std::size_t j = 0; j < num_neurons; j++) {
-            float delta = _learning_rate * weight_gradient[j]
+            float delta = _learning_rate * weight_gradient[j];
                 + _momentum * weight_gradient[j]
                 + _weight_decay * weights[j * num_connections_per_neuron + i];
+
             weights[j * num_connections_per_neuron + i] -= delta;
         }
         biases[i] -= bias_gradient[i];

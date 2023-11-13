@@ -33,6 +33,9 @@ protected:
     // The derivative of the activation function is used to calculate the derivative of each
     // value in the output.
     inline virtual float _derivative(float value) const = 0;
+    // The loss derivative is for the output layer since the gradient needs to be calculated
+    // with respect to the loss function.
+    inline virtual float _loss_derivative(float value) const = 0;
 
 public:
     // The constructor takes the number of number of neurons, the number of connections that each
@@ -49,10 +52,13 @@ public:
     // Specific activation functions are implemented in the derived classes.
     virtual std::vector<float> operator()(const std::vector<float>& input) = 0;
     // Backward pass through the network.
-    // The output_loss_gradient vector is the gradient calculated by the loss function.
+    // The prev_gradient vector is the gradient calculated by the loss function.
     // The gradient is calculated for each layer in the network using the gradient of the
     // previous layer. This applies the chain rule of calculus.
     std::vector<float> backward(const std::vector<float>& prev_gradient);
+    // The output_layer_backward is called on the last layer of the network. It applies
+    // a derivative with respect to the loss function.
+    std::vector<float> output_layer_backward(const std::vector<float>& expected_output);
 
     // Get the weights of the layer.
     std::vector<float>& get_weights() {
@@ -96,6 +102,7 @@ public:
 class Linear : public Layer {
 protected:
     inline float _derivative(float value) const override;
+    inline float _loss_derivative(float value) const override;
 
 public:
     Linear(unsigned int num_neurons, unsigned int num_connections_per_neuron) : Layer(num_neurons, num_connections_per_neuron) {}
@@ -107,6 +114,7 @@ public:
 class Sigmoid : public Layer {
 protected:
     inline float _derivative(float value) const override;
+    inline float _loss_derivative(float value) const override;
 
 public:
     Sigmoid(unsigned int num_neurons, unsigned int num_connections_per_neuron) : Layer(num_neurons, num_connections_per_neuron) {}
@@ -118,20 +126,10 @@ public:
 class ReLU : public Layer {
 protected:
     inline float _derivative(float value) const override;
+    inline float _loss_derivative(float value) const override;
 
 public:
     ReLU(unsigned int num_neurons, unsigned int num_connections_per_neuron) : Layer(num_neurons, num_connections_per_neuron) {}
-
-    std::vector<float> operator()(const std::vector<float>& input) override;
-};
-
-// Tanh activation function squashes the output of each neuron to a value between -1 and 1.
-class Tanh : public Layer {
-protected:
-    inline float _derivative(float value) const override;
-
-public:
-    Tanh(unsigned int num_neurons, unsigned int num_connections_per_neuron) : Layer(num_neurons, num_connections_per_neuron) {}
 
     std::vector<float> operator()(const std::vector<float>& input) override;
 };
@@ -140,6 +138,7 @@ public:
 class Softmax : public Layer {
 protected:
     inline float _derivative(float value) const override;
+    inline float _loss_derivative(float value) const override;
 
 public:
     Softmax(unsigned int num_neurons, unsigned int num_connections_per_neuron) : Layer(num_neurons, num_connections_per_neuron) {}

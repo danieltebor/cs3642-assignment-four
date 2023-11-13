@@ -1,4 +1,4 @@
-#include <iostream>
+#include <stdexcept>
 
 #include "fully_connected_nn.hpp"
 
@@ -58,15 +58,37 @@ int FullyConnectedNN::predict(const std::vector<float>& input) const {
 }
 
 // Backward pass through the network.
-// The output_loss_gradient vector is the gradient calculated by the loss function.
+// The expected_output is the true label the model should output.
 // The gradient is calculated for each layer in the network using the gradient of the
 // previous layer. This applies the chain rule of calculus.
-void FullyConnectedNN::backward(const std::vector<float>& output_loss_gradient) const {
-    auto current_gradient = output_loss_gradient;
+void FullyConnectedNN::backward(const std::vector<float>& expected_output) const {
+    std::vector<float> current_gradient = _layers[_layers.size() - 1]->output_layer_backward(expected_output);
+
+    if (_layers.size() <= 1) {
+        return;
+    }
 
     // Backward pass through each layer.
-    for (std::size_t i = _layers.size(); i > 0; i--) {
+    for (std::size_t i = _layers.size() - 2; i > 0; i--) {
         // Backward pass through the current layer.
         current_gradient = _layers[i - 1]->backward(current_gradient);
     }
+}
+
+// Backward pass through the network.
+// The expected_output is the true label the model should output.
+// The gradient is calculated for each layer in the network using the gradient of the
+// previous layer. This applies the chain rule of calculus.
+void FullyConnectedNN::backward(int expected_output_label) const {
+    std::size_t output_size = _layers[_layers.size() - 1]->get_num_connections_per_neuron();
+
+    if (expected_output_label < 0 || expected_output_label >= output_size) {
+        throw std::invalid_argument("Expected output label is out of range.");
+    }
+
+    // Convert the expected output label to a vector of floats.
+    std::vector<float> expected_output(output_size, 0.0f);
+    expected_output[expected_output_label] = 1.0f;
+
+    backward(expected_output);
 }

@@ -5,13 +5,13 @@
 
 #include "layer.hpp"
 
-#include <iostream>
 class FullyConnectedNN {
 private:
     std::vector<std::unique_ptr<Layer>> _layers;
 
 public:
     // Insert a layer into the network.
+    // The last layer is expected to be an OutputLayer.
     // This allows a custom topology to be created.
     void insert_layer(std::unique_ptr<Layer>);
 
@@ -27,11 +27,11 @@ public:
     int predict(const std::vector<float>& input) const;
 
     // Backward pass through the network.
-    // The output_loss_gradient vector is the gradient calculated by the loss function.
     // The gradient is calculated for each layer in the network using the gradient of the
     // previous layer. This applies the chain rule of calculus.
     // Returns the gradient of the network.
-    void backward(const std::vector<float>& output_loss_gradient) const;
+    void backward(const std::vector<float>& expected_output) const;
+    void backward(int expected_output_label) const;
 
     // Get the layers of the network.
     std::vector<std::unique_ptr<Layer>>& get_layers() {
