@@ -3,10 +3,8 @@
 
 #include "loss_function.hpp"
 
-// Converts the expected output label to a vector of floats of all 0s except for the index of the
-// expected output label, which is 1. The expected output label must be in the range of the output
-// vector. This vector is then passed to the other operator() function.
 float LossFunction::operator()(const std::vector<float>& output, int expected_output_label) const {
+    // Throw an error if the expected output label is out of range.
     if (expected_output_label < 0 || expected_output_label >= output.size()) {
         throw std::invalid_argument("Expected output label is out of range.");
     }
@@ -18,8 +16,8 @@ float LossFunction::operator()(const std::vector<float>& output, int expected_ou
     return (*this)(output, expected_output);
 }
 
-// Mean squared error returns the mean of the summed squared errors.
 float MeanSquaredError::operator()(const std::vector<float>& output, const std::vector<float>& expected_output) const {
+    // Throw an error if the output and expected output are not the same size.
     if (output.size() != expected_output.size()) {
         throw std::invalid_argument("The output and expected output must be the same size.");
     }
@@ -35,9 +33,8 @@ float MeanSquaredError::operator()(const std::vector<float>& output, const std::
     return loss / output.size();
 }
 
-// Cross entropy returns the negative of the sum of the expected output multiplied by the natural
-// log of the output.
 float CrossEntropyLoss::operator()(const std::vector<float>& output, const std::vector<float>& expected_output) const {
+    // Throw an error if the output and expected output are not the same size.
     if (output.size() != expected_output.size()) {
         throw std::invalid_argument("The output and expected output must be the same size.");
     }

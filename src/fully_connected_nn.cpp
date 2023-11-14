@@ -2,45 +2,49 @@
 
 #include "fully_connected_nn.hpp"
 
-// Insert a layer into the network.
-// This allows a custom topology to be created.
 void FullyConnectedNN::insert_layer(std::unique_ptr<Layer> layer) {
+    // Throw an error if the input size of the new layer does not match the output size of the previous layer.
     if (_layers.size() != 0) {
-        // Throw an error if the input size of the new layer does not match the output size of the previous layer.
-        std::size_t prev_layer_output_size = _layers[_layers.size() - 1]->get_num_connections_per_neuron();
-        std::size_t new_layer_input_size = layer->get_num_neurons();
-
-        if (prev_layer_output_size != new_layer_input_size) {
+        if (_layers.back()->OUTPUT_SIZE != layer->INPUT_SIZE) {
             throw std::invalid_argument("The input size of the new layer must match the output size of the previous layer.");
         }
+
+        // Set the previous activation derivative of the new layer to the activation derivative of the previous layer.
+        std::function<float(float)> activation_derivative_func = std::bind(&Layer::activation_derivative, _layers.back().get(), std::placeholders::_1);
+        layer->set_prev_activation_derivative(activation_derivative_func);
     }
 
     _layers.push_back(std::move(layer));
 }
 
-// Forward pass through the network.
-// The inputs vector is the input to the network and must be the same size as the number
-// of neurons in the first layer. Returns the outputs of each layer in the network.
 std::vector<float> FullyConnectedNN::operator()(const std::vector<float>& input) const {
+    if (_layers.size() == 0) {
+        throw std::invalid_argument("The network must have at least one layer.");
+    }
+    else if (input.size() != _layers[0]->INPUT_SIZE) {
+        throw std::invalid_argument("The input size must match the number of neurons in the first layer.");
+    }
+
     auto current_input = input;
     
     // Forward pass through each layer.
     for (auto& layer : _layers) {
         // Forward pass through the current layer.
-        auto current_output = (*layer)(current_input);
-
-        // Set the input of the next layer to the output of the current layer.
-        current_input = current_output;
+        current_input = (*layer)(current_input);
     }
 
     return current_input;
 }
 
-// Predict the output of the network.
-// The inputs vector is the input to the network and must be the same size as the number
-// of input neurons in the first layer. Returns the index of the output neuron with the highest
-// output value.
 int FullyConnectedNN::predict(const std::vector<float>& input) const {
+    // Throw an error if the network has no layers or if the input size does not match the number of neurons in the first layer.
+    if (_layers.size() == 0) {
+        throw std::invalid_argument("The network must have at least one layer.");
+    }
+    else if (input.size() != _layers[0]->INPUT_SIZE) {
+        throw std::invalid_argument("The input size must match the number of neurons in the first layer.");
+    }
+
     // Forward pass through the network.
     auto output = (*this)(input);
 
@@ -57,30 +61,35 @@ int FullyConnectedNN::predict(const std::vector<float>& input) const {
     return max_output_idx;
 }
 
-// Backward pass through the network.
-// The expected_output is the true label the model should output.
-// The gradient is calculated for each layer in the network using the gradient of the
-// previous layer. This applies the chain rule of calculus.
 void FullyConnectedNN::backward(const std::vector<float>& expected_output) const {
+    // Throw an error if the network has no layers or if the expected output size does not match the number of neurons in the last layer.
+    if (_layers.size() == 0) {
+        throw std::invalid_argument("The network must have at least one layer.");
+    }
+    else if (expected_output.size() != _layers[_layers.size() - 1]->OUTPUT_SIZE) {
+        throw std::invalid_argument("The expected output size must match the number of neurons in the last layer.");
+    }
+
     std::vector<float> current_gradient = _layers[_layers.size() - 1]->output_layer_backward(expected_output);
 
-    if (_layers.size() <= 1) {
+    if (_layers.size() == 1) {
         return;
     }
 
     // Backward pass through each layer.
-    for (std::size_t i = _layers.size() - 2; i > 0; i--) {
+    for (std::size_t i = _layers.size() - 1; i > 0; i--) {
         // Backward pass through the current layer.
         current_gradient = _layers[i - 1]->backward(current_gradient);
     }
 }
 
-// Backward pass through the network.
-// The expected_output is the true label the model should output.
-// The gradient is calculated for each layer in the network using the gradient of the
-// previous layer. This applies the chain rule of calculus.
 void FullyConnectedNN::backward(int expected_output_label) const {
-    std::size_t output_size = _layers[_layers.size() - 1]->get_num_connections_per_neuron();
+    // Throw an error if the network has no layers or if the expected output label is out of range.
+    if (_layers.size() == 0) {
+        throw std::invalid_argument("The network must have at least one layer.");
+    }
+
+    std::size_t output_size = _layers[_layers.size() - 1]->OUTPUT_SIZE;
 
     if (expected_output_label < 0 || expected_output_label >= output_size) {
         throw std::invalid_argument("Expected output label is out of range.");
