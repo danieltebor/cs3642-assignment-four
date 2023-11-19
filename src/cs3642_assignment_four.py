@@ -10,8 +10,8 @@ cppyy.include('./include/sgd.hpp')
 cppyy.load_library('./lib/lib_fully_connected_nn.dll')
 
 def train_model(model: cppyy.gbl.FullyConnectedNN, loss_function: cppyy.gbl.LossFunction, optimizer: cppyy.gbl.SGD) -> None:
-    MAX_EPOCHS = 1000
-    MAX_FORGIVES = 9
+    MAX_EPOCHS = 10000
+    MAX_FORGIVES = 4
     times_forgiven = 0
     best_avg_testing_loss = np.inf
 
@@ -58,29 +58,33 @@ def train_model(model: cppyy.gbl.FullyConnectedNN, loss_function: cppyy.gbl.Loss
             print(f'Model has gone {times_forgiven} epochs without improvement. Halting training')
             break
             
-
 model_one = cppyy.gbl.FullyConnectedNN()
-model_one.insert_layer(cppyy.gbl.Sigmoid(4, 2))
-model_one.insert_layer(cppyy.gbl.Sigmoid(2, 3))
+model_one.insert_layer(cppyy.gbl.ReLU(4, 2))
+model_one.insert_layer(cppyy.gbl.Softmax(2, 3))
 
 model_two = cppyy.gbl.FullyConnectedNN()
-model_two.insert_layer(cppyy.gbl.Sigmoid(4, 6))
-model_two.insert_layer(cppyy.gbl.Sigmoid(6, 3))
+model_two.insert_layer(cppyy.gbl.Linear(4, 6))
+model_two.insert_layer(cppyy.gbl.Softmax(6, 3))
 
-loss_function = cppyy.gbl.MeanSquaredError()
+loss_function = cppyy.gbl.CrossEntropyLoss()
 
-optimizer_one = cppyy.gbl.SGD(0.1)
-optimizer_two = cppyy.gbl.SGD(0.1)
+optimizer_one = cppyy.gbl.SGD(0.01, 0.3, 0.001)
+optimizer_two = cppyy.gbl.SGD(0.01, 0.5, 0.001)
 
 train_model(model=model_one, loss_function=loss_function, optimizer=optimizer_one)
 train_model(model=model_two, loss_function=loss_function, optimizer=optimizer_two)
 
-print('Model One Predictions:')
-for i in range(len(VALIDATION_FEATURES)):
-    output = model_one.predict(VALIDATION_FEATURES[i].tolist())
-    print(f'Predicted: {output} | Actual: {int(VALIDATION_LABELS[i])}')
+def calc_accuracy(model: cppyy.gbl.FullyConnectedNN, features: np.ndarray, labels: np.ndarray) -> float:
+    correct = 0
+    
+    for i in range(len(features)):
+        output = model(features[i].tolist())
+        prediction = np.argmax(output)
+        
+        if prediction == int(labels[i]):
+            correct += 1
+            
+    return correct / len(features)
 
-print('Model Two Predictions:')
-for i in range(len(VALIDATION_FEATURES)):
-    output = model_two.predict(VALIDATION_FEATURES[i].tolist())
-    print(f'Predicted: {output} | Actual: {int(VALIDATION_LABELS[i])}')
+print(f'Model One Accuracy: {calc_accuracy(model_one, VALIDATION_FEATURES, VALIDATION_LABELS)}')
+print(f'Model Two Accuracy: {calc_accuracy(model_two, VALIDATION_FEATURES, VALIDATION_LABELS)}')

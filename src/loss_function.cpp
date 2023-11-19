@@ -22,15 +22,15 @@ float MeanSquaredError::operator()(const std::vector<float>& output, const std::
         throw std::invalid_argument("The output and expected output must be the same size.");
     }
 
-    float loss = 0.0f;
+    float sum = 0.0f;
 
     // Calculate the mean squared error for each output.
     for (std::size_t i = 0; i < output.size(); i++) {
-        loss += std::pow(output[i] - expected_output[i], 2);
+        sum += std::pow(output[i] - expected_output[i], 2);
     }
 
     // Return the mean of the mean squared errors.
-    return loss / output.size();
+    return sum / output.size();
 }
 
 float CrossEntropyLoss::operator()(const std::vector<float>& output, const std::vector<float>& expected_output) const {
@@ -39,13 +39,13 @@ float CrossEntropyLoss::operator()(const std::vector<float>& output, const std::
         throw std::invalid_argument("The output and expected output must be the same size.");
     }
 
-    float loss = 0.0f;
+    float sum = 0.0f;
 
     // Calculate the cross entropy for each output.
     for (std::size_t i = 0; i < output.size(); i++) {
-        loss += expected_output[i] * std::log(output[i]);
+        sum += expected_output[i] * std::log(output[i]);
     }
 
     // Return the negative of the sum of the cross entropies.
-    return -loss;
+    return -sum;
 }

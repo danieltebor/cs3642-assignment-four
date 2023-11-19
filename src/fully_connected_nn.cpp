@@ -8,10 +8,6 @@ void FullyConnectedNN::insert_layer(std::unique_ptr<Layer> layer) {
         if (_layers.back()->OUTPUT_SIZE != layer->INPUT_SIZE) {
             throw std::invalid_argument("The input size of the new layer must match the output size of the previous layer.");
         }
-
-        // Set the previous activation derivative of the new layer to the activation derivative of the previous layer.
-        std::function<float(float)> activation_derivative_func = std::bind(&Layer::activation_derivative, _layers.back().get(), std::placeholders::_1);
-        layer->set_prev_activation_derivative(activation_derivative_func);
     }
 
     _layers.push_back(std::move(layer));
@@ -70,7 +66,7 @@ void FullyConnectedNN::backward(const std::vector<float>& expected_output) const
         throw std::invalid_argument("The expected output size must match the number of neurons in the last layer.");
     }
 
-    std::vector<float> current_gradient = _layers[_layers.size() - 1]->output_layer_backward(expected_output);
+    std::vector<float> error_gradient = _layers[_layers.size() - 1]->output_layer_backward(expected_output);
 
     if (_layers.size() == 1) {
         return;
@@ -79,7 +75,7 @@ void FullyConnectedNN::backward(const std::vector<float>& expected_output) const
     // Backward pass through each layer.
     for (std::size_t i = _layers.size() - 1; i > 0; i--) {
         // Backward pass through the current layer.
-        current_gradient = _layers[i - 1]->backward(current_gradient);
+        error_gradient = _layers[i - 1]->backward(error_gradient);
     }
 }
 
