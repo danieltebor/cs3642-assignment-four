@@ -7,7 +7,7 @@ avg_model_two_accuracy = 0.0
 avg_model_one_avg_epoch_runtime = 0.0
 avg_model_two_avg_epoch_runtime = 0.0
 
-for i in range(10000):
+for i in range(1000):
     model_one = cppyy.gbl.FullyConnectedNN()
     model_one.insert_layer(cppyy.gbl.ReLU(4, 2))
     model_one.insert_layer(cppyy.gbl.Softmax(2, 3))
@@ -18,15 +18,16 @@ for i in range(10000):
 
     loss_function = cppyy.gbl.CrossEntropyLoss()
 
-    optimizer = cppyy.gbl.SGD(0.005, 0.3, 0.0001)
+    optimizer_one = cppyy.gbl.SGD(0.01, 0.3, 0.0001)
+    optimizer_two = cppyy.gbl.SGD(0.001, 0.3, 0.00001)
 
     start_time = time.time_ns()
-    model_one_training_metadata = train_model(model_one, loss_function, optimizer)
+    model_one_training_metadata = train_model(model_one, loss_function, optimizer_one)
     end_time = time.time_ns()
     model_one_avg_epoch_runtime = (end_time - start_time) / model_one_training_metadata.epochs_taken
 
     start_time = time.time_ns()
-    model_two_training_metadata = train_model(model_two, loss_function, optimizer)
+    model_two_training_metadata = train_model(model_two, loss_function, optimizer_two)
     end_time = time.time_ns()
     model_two_avg_epoch_runtime = (end_time - start_time) / model_two_training_metadata.epochs_taken
 
@@ -39,7 +40,7 @@ for i in range(10000):
     avg_model_one_accuracy += model_one_accuracy
     avg_model_two_accuracy += model_two_accuracy
 
-    if i % 100 == 0:
+    if i % 10 == 0:
         print(f'Iteration {i}')
         print(f'Model One Accuracy: {model_one_accuracy:.4f}')
         print(f'Model Two Accuracy: {model_two_accuracy:.4f}')
@@ -47,10 +48,10 @@ for i in range(10000):
         print(f'Model Two Avg Epoch Runtime: {model_two_avg_epoch_runtime:.4f}')
         print()
 
-avg_model_one_avg_epoch_runtime /= 10000
-avg_model_two_avg_epoch_runtime /= 10000
-avg_model_one_accuracy /= 10000
-avg_model_two_accuracy /= 10000
+avg_model_one_avg_epoch_runtime /= 1000
+avg_model_two_avg_epoch_runtime /= 1000
+avg_model_one_accuracy /= 1000
+avg_model_two_accuracy /= 1000
 
 print(f'Average Model One Accuracy: {avg_model_one_accuracy:.4f}')
 print(f'Average Model Two Accuracy: {avg_model_two_accuracy:.4f}')

@@ -83,7 +83,7 @@ std::vector<float> Layer::_backward(const std::vector<float>& error_gradient) {
 std::vector<float> Layer::backward(std::vector<float>& error_gradient) {
     // Calculate the gradient of the activation function with respect to error of the previous layer/s.
     for (std::size_t output_idx = 0; output_idx < OUTPUT_SIZE; output_idx++) {
-        error_gradient[output_idx] = _activation_derivative(output_idx) * error_gradient[output_idx];
+        error_gradient[output_idx] = _activation_derivative(_output[output_idx]) * error_gradient[output_idx];
     }
 
     return _backward(error_gradient);
@@ -105,6 +105,7 @@ inline float Linear::_activation_derivative(float value) const {
 
 // Assumes that the loss function is the mean squared error.
 inline float Linear::_loss_derivative(float predicted_value, float expected_value) const {
+    // The 2 from the derivative of MSE is ommitted because it is a scalar and does not affect the direction of the gradient.
     return (predicted_value - expected_value) / OUTPUT_SIZE;
 }
 
@@ -115,12 +116,8 @@ std::vector<float> Linear::operator()(const std::vector<float>& input) {
     return _output;
 }
 
-inline float sigmoid(float value) {
-    return 1 / (1 + std::exp(-value));
-}
-
 inline float Sigmoid::_activation_derivative(float value) const {
-    return sigmoid(value) * (1 - sigmoid(value));
+    return value * (1 - value);
 }
 
 // Assumes that the loss function is the mean squared error.
@@ -135,7 +132,7 @@ std::vector<float> Sigmoid::operator()(const std::vector<float>& input) {
 
     // Apply the sigmoid function to the output of the layer.
     for (std::size_t i = 0; i < OUTPUT_SIZE; i++) {
-        _output[i] = sigmoid(_output[i]);
+        _output[i] = 1 / (1 + std::exp(-_output[i]));
     }
 
     return _output;
@@ -147,6 +144,7 @@ inline float ReLU::_activation_derivative(float value) const {
 
 // Assumes that the loss function is the mean squared error.
 inline float ReLU::_loss_derivative(float predicted_value, float expected_value) const {
+    // The 2 from the derivative of MSE is ommitted because it is a scalar and does not affect the direction of the gradient.
     return predicted_value * (predicted_value - expected_value) / OUTPUT_SIZE;
 }
 

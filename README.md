@@ -277,7 +277,7 @@ std::vector<float> Sigmoid::operator()(const std::vector<float>& input) {
 
     // Apply the sigmoid function to the output of the layer.
     for (std::size_t i = 0; i < OUTPUT_SIZE; i++) {
-        _output[i] = sigmoid(_output[i]);
+        _output[i] = 1 / (1 + std::exp(-_output[i]));
     }
 
     return _output;
@@ -366,7 +366,7 @@ std::vector<float> Layer::output_layer_backward(const std::vector<float>& expect
 
     return _backward(error_gradient);
 }
-```cpp
+```
 
 Each activation function also has its own derivative. It also has its own derivative of the loss function in terms of the activation function.
 
@@ -377,15 +377,12 @@ inline float Linear::_activation_derivative(float value) const {
 
 // Assumes that the loss function is the mean squared error.
 inline float Linear::_loss_derivative(float predicted_value, float expected_value) const {
+    // The 2 from the derivative of MSE is ommitted because it is a scalar and does not affect the direction of the gradient.
     return (predicted_value - expected_value) / OUTPUT_SIZE;
 }
 
-inline float sigmoid(float value) {
-    return 1 / (1 + std::exp(-value));
-}
-
 inline float Sigmoid::_activation_derivative(float value) const {
-    return sigmoid(value) * (1 - sigmoid(value));
+    return value * (1 - value);
 }
 
 // Assumes that the loss function is the mean squared error.
@@ -400,9 +397,9 @@ inline float ReLU::_activation_derivative(float value) const {
 
 // Assumes that the loss function is the mean squared error.
 inline float ReLU::_loss_derivative(float predicted_value, float expected_value) const {
+    // The 2 from the derivative of MSE is ommitted because it is a scalar and does not affect the direction of the gradient.
     return predicted_value * (predicted_value - expected_value) / OUTPUT_SIZE;
 }
-
 inline float Softmax::_activation_derivative(float value) const {
     throw std::logic_error("The softmax layer does not have an implemented activation derivative and cannot be used for hidden layers.");
 }
@@ -1134,7 +1131,7 @@ window.mainloop()
 ```
 
 ## Accuracy and Runtime Results
-Two models were trained. The first had a topology of 4-2-3. The second had a topology of 4-6-3. There was no bias input in the input layer because each layer output has a bias that is added to its weighted sum. Both models had a RelU activation function for the hidden layer and a softmax output layer. The loss function used was cross entropy. SGD was used with a learning rate of 0.005, a momentum of 0.3, and a weight decay of 0.0001. These parameters gave good accuracy results. The training loop was run 10000 times to average the results. This was done using the following algorithm:
+Two models were trained. The first had a topology of 4-2-3. The second had a topology of 4-6-3. There was no bias input in the input layer because each layer output has a bias that is added to its weighted sum. Both models had a RelU activation function for the hidden layer and a softmax output layer. The loss function used was cross entropy. For the 4-2-3 model, SGD was used with the parameters of 0.01 learning rate, 0.3 momentum, and 0.0001 weight decay. For the 4-6-3 model, SGD was used with the parameters of 0.001 learning rate, 0.3 momentum, and 0.00001 weight decay. These parameters gave good accuracy results. The training loop was run 10000 times to average the results. This was done using the following algorithm:
 
 ```python
 avg_model_one_accuracy = 0.0
@@ -1142,7 +1139,7 @@ avg_model_two_accuracy = 0.0
 avg_model_one_avg_epoch_runtime = 0.0
 avg_model_two_avg_epoch_runtime = 0.0
 
-for i in range(10000):
+for i in range(1000):
     model_one = cppyy.gbl.FullyConnectedNN()
     model_one.insert_layer(cppyy.gbl.ReLU(4, 2))
     model_one.insert_layer(cppyy.gbl.Softmax(2, 3))
@@ -1153,15 +1150,16 @@ for i in range(10000):
 
     loss_function = cppyy.gbl.CrossEntropyLoss()
 
-    optimizer = cppyy.gbl.SGD(0.005, 0.3, 0.0001)
+    optimizer_one = cppyy.gbl.SGD(0.01, 0.3, 0.0001)
+    optimizer_two = cppyy.gbl.SGD(0.001, 0.3, 0.00001)
 
     start_time = time.time_ns()
-    model_one_training_metadata = train_model(model_one, loss_function, optimizer)
+    model_one_training_metadata = train_model(model_one, loss_function, optimizer_one)
     end_time = time.time_ns()
     model_one_avg_epoch_runtime = (end_time - start_time) / model_one_training_metadata.epochs_taken
 
     start_time = time.time_ns()
-    model_two_training_metadata = train_model(model_two, loss_function, optimizer)
+    model_two_training_metadata = train_model(model_two, loss_function, optimizer_two)
     end_time = time.time_ns()
     model_two_avg_epoch_runtime = (end_time - start_time) / model_two_training_metadata.epochs_taken
 
@@ -1174,7 +1172,7 @@ for i in range(10000):
     avg_model_one_accuracy += model_one_accuracy
     avg_model_two_accuracy += model_two_accuracy
 
-    if i % 100 == 0:
+    if i % 10 == 0:
         print(f'Iteration {i}')
         print(f'Model One Accuracy: {model_one_accuracy:.4f}')
         print(f'Model Two Accuracy: {model_two_accuracy:.4f}')
@@ -1182,10 +1180,10 @@ for i in range(10000):
         print(f'Model Two Avg Epoch Runtime: {model_two_avg_epoch_runtime:.4f}')
         print()
 
-avg_model_one_avg_epoch_runtime /= 10000
-avg_model_two_avg_epoch_runtime /= 10000
-avg_model_one_accuracy /= 10000
-avg_model_two_accuracy /= 10000
+avg_model_one_avg_epoch_runtime /= 1000
+avg_model_two_avg_epoch_runtime /= 1000
+avg_model_one_accuracy /= 1000
+avg_model_two_accuracy /= 1000
 
 print(f'Average Model One Accuracy: {avg_model_one_accuracy:.4f}')
 print(f'Average Model Two Accuracy: {avg_model_two_accuracy:.4f}')
@@ -1195,7 +1193,7 @@ print(f'Average Model Two Avg Epoch Runtime: {avg_model_two_avg_epoch_runtime:.4
 
 | Model | Mean Accuracy | Mean Epoch Runtime (ns) |
 |-------|---------------|-------------------------|
-| 4-2-3 | 32.82%        | 585220.91               |
-| 4-6-3 | 93.43%        | 710092.22               |
+| 4-2-3 | 86.64%        | 581316.94               |
+| 4-6-3 | 93.18%        | 705323.70               |
 
-The runtime complexity of each layer in the network is O(n\*m), where n is the number of inputs and m is the number of outputs. This is because the forward pass, backward pass, and optimization step all loop through a nested loop that goes for i * n iterations. This runtime complexity is then multiplied by the number of layers in the network, resulting in a runtime complexity of O(n\*m\*l), where l is the number of layers. In the realtime results, each epoch on average took 0.58 milliseconds for the 4-2-3 model and 0.71 milliseconds for the 4-6-3 model. This is an aggregate of passing in all the training samples and all the validation samples. If we divide the mean epoch runtime by 150, we get the mean runtime for one forward pass, backward pass, and optimization step. This results in a runtime of 3.90 microseconds for the 4-2-3 model and 4.73 microseconds for the 4-6-3 model. This is a very fast runtime, granted the model being trained is very small. A larger model would have a much slower runtime. However, this is why neural networks are typically trained on a gpu, where the forward pass, backward pass, and optimization steps can be massively multithreaded using matrix multiplication.
+The runtime complexity of each layer in the network is O(n\*m), where n is the number of inputs and m is the number of outputs. This is because the forward pass, backward pass, and optimization step all loop through a nested loop that goes for n \* m iterations. This runtime complexity is then multiplied by the number of layers in the network, resulting in a runtime complexity of O(n\*m\*l), where l is the number of layers. In the realtime results, each epoch on average took 0.58 milliseconds for the 4-2-3 model and 0.71 milliseconds for the 4-6-3 model. This is an aggregate of passing in all the training samples and all the validation samples. If we divide the mean epoch runtime by 150, we get the mean runtime for one forward pass, backward pass, and optimization step. This results in a runtime of 3.87 microseconds for the 4-2-3 model and 4.70 microseconds for the 4-6-3 model. This is a very fast runtime, granted the model being trained is very small. A larger model would have a much slower runtime. However, this is why neural networks are typically trained on a gpu, where the forward pass, backward pass, and optimization steps can be massively multithreaded using matrix multiplication. We can also see that the performance of the models is fairly similar. The 4-2-3 model was slightly worse at 86% compared to 93% for the 4-6-3 model. This is likely because the 4-2-3 model is smaller and has less capacity to learn the iris dataset. Given the fact that the 4-6-3 model is more accurate and only slightly slower, it is the better model.
