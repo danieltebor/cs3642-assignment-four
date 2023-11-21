@@ -53,6 +53,8 @@ public:
     // Forward pass through the layer. Returns the output of the layer.
     virtual std::vector<float> operator()(const std::vector<float>& input) = 0;
 
+    // Modification of the backward pass that takes in the expected output of the layer
+    // and computes the gradient with respect to the loss function.
     std::vector<float> backward(std::vector<float>& error_gradient);
     std::vector<float> output_layer_backward(const std::vector<float>& expected_output);
 

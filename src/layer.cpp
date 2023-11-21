@@ -81,6 +81,7 @@ std::vector<float> Layer::_backward(const std::vector<float>& error_gradient) {
 }
 
 std::vector<float> Layer::backward(std::vector<float>& error_gradient) {
+    // Calculate the gradient of the activation function with respect to error of the previous layer/s.
     for (std::size_t output_idx = 0; output_idx < OUTPUT_SIZE; output_idx++) {
         error_gradient[output_idx] = _activation_derivative(output_idx) * error_gradient[output_idx];
     }
