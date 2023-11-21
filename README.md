@@ -15,9 +15,12 @@
   - [Backward Pass](#backward-pass)
   - [Calculating Loss](#calculating-loss)
   - [Optimizing the Network](#optimizing-the-network)
-- [Dataset](#dataset)
+- [Iris Dataset](#iris-dataset)
 - [Training the Network](#training-the-network)
+- [GUI to Configure the Model](#gui-to-configure-the-model)
 - [Accuracy and Runtime Results](#accuracy-and-runtime-results)
+- [Video Presentation](#video-presentation)
+- [Building and Running](#building-and-running)
 
 ## Artificial Neural Network Implementation
 The core of this assignment is to build an artificial neural network (ANN). The ANN needs to be customizable with different layers and activation functions. The ANN needs to also be able to complete a forward pass, backward pass, and have its weights adjusted to adapt to a dataset.
@@ -400,6 +403,7 @@ inline float ReLU::_loss_derivative(float predicted_value, float expected_value)
     // The 2 from the derivative of MSE is ommitted because it is a scalar and does not affect the direction of the gradient.
     return predicted_value * (predicted_value - expected_value) / OUTPUT_SIZE;
 }
+
 inline float Softmax::_activation_derivative(float value) const {
     throw std::logic_error("The softmax layer does not have an implemented activation derivative and cannot be used for hidden layers.");
 }
@@ -580,7 +584,7 @@ void SGD::step(FullyConnectedNN& network) {
 }
 ```
 
-## Dataset
+## Iris Dataset
 The dataset used was the iris dataset from the [UCI Machine Learning Repository](). The dataset contains 150 samples of three different species of iris. Each sample has four features: sepal length, sepal width, petal length, and petal width. The dataset is split 50-50 into 75 training samples and 75 validation samples. The dataset is split into 3 classes, one for each species of iris. The labels were encoded to the values 0, 1, and 2, which makes it easy to determine the corresponding label to the models predicted output. The dataset was loaded like so:
 
 ```python
@@ -1197,3 +1201,44 @@ print(f'Average Model Two Avg Epoch Runtime: {avg_model_two_avg_epoch_runtime:.4
 | 4-6-3 | 93.18%        | 705323.70               |
 
 The runtime complexity of each layer in the network is O(n\*m), where n is the number of inputs and m is the number of outputs. This is because the forward pass, backward pass, and optimization step all loop through a nested loop that goes for n \* m iterations. This runtime complexity is then multiplied by the number of layers in the network, resulting in a runtime complexity of O(n\*m\*l), where l is the number of layers. In the realtime results, each epoch on average took 0.58 milliseconds for the 4-2-3 model and 0.71 milliseconds for the 4-6-3 model. This is an aggregate of passing in all the training samples and all the validation samples. If we divide the mean epoch runtime by 150, we get the mean runtime for one forward pass, backward pass, and optimization step. This results in a runtime of 3.87 microseconds for the 4-2-3 model and 4.70 microseconds for the 4-6-3 model. This is a very fast runtime, granted the model being trained is very small. A larger model would have a much slower runtime. However, this is why neural networks are typically trained on a gpu, where the forward pass, backward pass, and optimization steps can be massively multithreaded using matrix multiplication. We can also see that the performance of the models is fairly similar. The 4-2-3 model was slightly worse at 86% compared to 93% for the 4-6-3 model. This is likely because the 4-2-3 model is smaller and has less capacity to learn the iris dataset. Given the fact that the 4-6-3 model is more accurate and only slightly slower, it is the better model.
+
+## Video Presentation
+A video presentation explaining the reasoning and workings of the code can be found [here](/assets/cs3642-assignment-three-presentation.mp4) or [downloaded](https://github.com/danieltebor/cs3642-assignment-three/raw/main/assets/cs3642-assignment-three-presentation.mp4).
+
+## Building and Running
+Python 3.10.12 was used to build the project. It is likely that other versions also work.
+
+### Prerequisites
+To build and run the project, the following prerequisites are required:
+
+- Python 3.10.12+ (https://www.python.org/downloads/)
+- Tkinter (https://docs.python.org/3/library/tkinter.html)
+- Python Pip (https://pip.pypa.io/en/stable/installation/)
+- Cmake (https://cmake.org/download/)
+- C++ Compiler (https://gcc.gnu.org/install/)
+
+To install the required pip packages, run the following command in project root:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Building
+To build the project, run the following commands in project root:
+
+```bash
+cmake -B build -S .
+```
+
+```bash
+cmake --build build
+```
+
+This will build the required C++ library that is used by the python code.
+
+### Running
+To run the GUI, run the following command in project root:
+
+```bash
+python src/cs3642_assignment_four.py
+```

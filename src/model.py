@@ -3,6 +3,7 @@ import numpy as np
 
 from iris_dataset import *
 
+
 # Bind the C++ library.
 cppyy.include('./include/fully_connected_nn.hpp')
 cppyy.include('./include/loss_function.hpp')

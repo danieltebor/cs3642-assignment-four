@@ -2,6 +2,7 @@ import time
 
 from model import *
 
+
 avg_model_one_accuracy = 0.0
 avg_model_two_accuracy = 0.0
 avg_model_one_avg_epoch_runtime = 0.0

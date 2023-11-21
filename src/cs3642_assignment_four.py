@@ -2,6 +2,7 @@ import tkinter as tk
 
 from model import *
 
+
 window = tk.Tk()
 window.title('CS3642 Assignment 4')
 window.geometry('645x600')

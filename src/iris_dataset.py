@@ -3,6 +3,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from ucimlrepo import fetch_ucirepo
 
+
 # Features and labels.
 _features = None
 _labels = None
