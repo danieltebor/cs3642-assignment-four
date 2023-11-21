@@ -14,7 +14,7 @@ public:
 };
 
 // The mean squared error loss function is used for regression problems.
-class MeanSquaredError : public LossFunction {
+class MSELoss : public LossFunction {
 public:
     using LossFunction::operator();
 

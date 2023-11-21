@@ -16,7 +16,7 @@ float LossFunction::operator()(const std::vector<float>& output, int expected_ou
     return (*this)(output, expected_output);
 }
 
-float MeanSquaredError::operator()(const std::vector<float>& output, const std::vector<float>& expected_output) const {
+float MSELoss::operator()(const std::vector<float>& output, const std::vector<float>& expected_output) const {
     // Throw an error if the output and expected output are not the same size.
     if (output.size() != expected_output.size()) {
         throw std::invalid_argument("The output and expected output must be the same size.");
